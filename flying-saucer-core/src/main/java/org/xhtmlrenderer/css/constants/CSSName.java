@@ -1399,6 +1399,19 @@ public final class CSSName implements Comparable {
             );
 
     /**
+     * Unique CSSName instance for CSS3 property.
+     */
+    public final static CSSName HYPHENS =
+            addProperty(
+                    "hyphens",
+                    PRIMITIVE,
+                    "manual",
+                    INHERITS,
+                    new PrimitivePropertyBuilders.Hyphens()
+            );
+
+
+    /**
      * Unique CSSName instance for CSS2 property.
      */
     public final static CSSName BACKGROUND_SHORTHAND =

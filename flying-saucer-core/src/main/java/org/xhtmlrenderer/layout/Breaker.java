@@ -20,11 +20,13 @@
  */
 package org.xhtmlrenderer.layout;
 
-import java.text.BreakIterator;
-
 import org.xhtmlrenderer.css.constants.IdentValue;
 import org.xhtmlrenderer.css.style.CalculatedStyle;
 import org.xhtmlrenderer.render.FSFont;
+
+import java.text.BreakIterator;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A utility class that scans the text of a single inline box, looking for the
@@ -32,6 +34,9 @@ import org.xhtmlrenderer.render.FSFont;
  * @author Torbjoern Gannholm
  */
 public class Breaker {
+
+    public static final char SOFT_HYPHEN = '\u00AD';
+    public static final char HYPHEN = '-';
 
     public static void breakFirstLetter(LayoutContext c, LineBreakContext context,
             int avail, CalculatedStyle style) {
@@ -61,6 +66,25 @@ public class Breaker {
             }
         }
         return end;
+    }
+
+    public static void collectSoftHyphens(LineBreakContext context) {
+        String master = context.getMaster();
+        List<Integer> breakingPoints = new ArrayList<Integer>();
+        for (int i = 0; i < master.length(); i++) {
+            if (master.charAt(i) == SOFT_HYPHEN) {
+                breakingPoints.add(i - breakingPoints.size());
+            }
+        }
+        context.setSoftBreakingPoints(toIntArray(breakingPoints));
+        context.setMaster(master.replace(Character.toString(SOFT_HYPHEN), ""));
+    }
+
+    private static int[] toIntArray(List<Integer> list){
+        int[] ret = new int[list.size()];
+        for(int i = 0;i < ret.length;i++)
+            ret[i] = list.get(i);
+        return ret;
     }
 
     public static void breakText(LayoutContext c,
@@ -146,6 +170,29 @@ public class Breaker {
         }
 
         context.setNeedsNewLine(true);
+
+        boolean softWrapped = false;
+        if (style.getHyphens() != IdentValue.NONE && context.getSoftBreakingPoints().length > 0) {
+            int lastSoftWrap = lastWrap;
+            for (int bp : context.getSoftBreakingPoints()) {
+                bp -= context.getStart();
+                if (bp > lastSoftWrap) {
+                    //maybe store hyphen width and do incremental calculation like before?
+                    int grLength = c.getTextRenderer().getWidth(
+                            c.getFontContext(), font, currentString.substring(lastWrap, bp) + HYPHEN);
+                    if (lastGraphicsLength + grLength <= avail) {
+                        lastSoftWrap = bp;
+                        graphicsLength = lastGraphicsLength + grLength;
+                    } else break;
+                }
+            }
+            if (lastSoftWrap > lastWrap) {
+                lastWrap = lastSoftWrap;
+                lastGraphicsLength = graphicsLength;
+                softWrapped = true;
+            }
+        }
+
         if ( lastWrap == 0 && style.getWordWrap() == IdentValue.BREAK_WORD ) {
             if ( ! tryToBreakAnywhere ) {
                 doBreakText(c, context, avail, style, true);
@@ -156,6 +203,7 @@ public class Breaker {
         if (lastWrap != 0) {//found a place to wrap
             context.setEnd(context.getStart() + lastWrap);
             context.setWidth(lastGraphicsLength);
+            if (softWrapped) context.insertChar(context.getEnd(), HYPHEN);
         } else {//unbreakable string
             if (left == 0) {
                 left = currentString.length();

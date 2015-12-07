@@ -36,6 +36,7 @@ public class LineBreakContext {
     private int _width;
     private boolean _endsOnNL;
     private Text _textNode;
+    private int[] _softBreakingPoints;
     
     public int getLast() {
         return _master.length();
@@ -136,5 +137,21 @@ public class LineBreakContext {
 
     public void setTextNode(Text _text) {
         this._textNode = _text;
+    }
+
+    public void setSoftBreakingPoints(int[] softBreakingPoints) {
+        this._softBreakingPoints = softBreakingPoints;
+    }
+
+    public int[] getSoftBreakingPoints() {
+        return _softBreakingPoints;
+    }
+
+    public void insertChar(int pos, char c) {
+        setMaster(getMaster().substring(0, pos) + c + getMaster().substring(pos));
+        if (_end >= pos) _end++;
+        if (_savedEnd >= pos) _savedEnd++;
+        for (int i = 0; i < _softBreakingPoints.length; i++)
+            if (_softBreakingPoints[i] >= pos) _softBreakingPoints[i]++;
     }
 }

@@ -159,6 +159,7 @@ public class InlineBoxing {
                 if (iB.isDynamicFunction()) {
                     lbContext.setMaster(iB.getContentFunction().getLayoutReplacementText());
                 }
+                Breaker.collectSoftHyphens(lbContext);
 
                 do {
                     lbContext.reset();
@@ -839,6 +840,7 @@ public class InlineBoxing {
             Breaker.breakFirstLetter(c, lbContext, remainingWidth, style);
         } else {
             Breaker.breakText(c, lbContext, remainingWidth, style);
+            masterText = lbContext.getMaster();
         }
 
         result.setMasterText(masterText);
